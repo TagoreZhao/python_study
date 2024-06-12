@@ -43,4 +43,37 @@ Output:
 
 def gen_sync_in_grid(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=-1,T=50,loc_bound=5):
 
-    print("This function is used to generate our syntheyic data.")
+    #set the random seed.
+    np.random.seed(rand_seed)
+
+    #generate the candidate locations
+    cand_loc = gen_loc(loc_bound,grid_size)
+
+
+
+'''
+    This function is used to generate the location of the bike and arrival locations.
+    Input:
+        Generate a Cartesian grid of locations.
+        loc_bound: location bound (can be a float or an array with four elements)
+        s: scale parameter 
+        grid_size: size of the grid
+        coor: the coordinate of the center of the grid
+    Output:
+        loc: matrix of size 1*grid_size^2*2, it returns the coordinates of all candidate locations.
+        this is a grid with 10 lines and 9 intervals on each side.
+'''
+def gen_loc(loc_bound,grid_size,s=1,coor=np.zeros(2)):
+    npos = grid_size**2
+    if isinstance(loc_bound,list):
+        a = np.linspace(loc_bound[0]/s+coor[0],loc_bound[1]/s+coor[0],grid_size)
+        b = np.linspace(loc_bound[2]/s+coor[1],loc_bound[3]/s+coor[1],grid_size)
+    else:
+        a = np.linspace(-loc_bound/s+coor[0],loc_bound/s+coor[0],grid_size)
+        b = np.linspace(-loc_bound/s+coor[1],loc_bound/s+coor[1],grid_size)
+        loc = np.zeros((1,npos,2))
+    for i in range(npos):
+        loc[0,i,0] = a[int(i/grid_size)]
+        loc[0,i,1] = b[int(i%grid_size)]
+    return loc
+
