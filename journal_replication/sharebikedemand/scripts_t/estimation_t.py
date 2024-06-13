@@ -48,6 +48,16 @@ def gen_sync_in_grid(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,bet
 
     #generate the candidate locations
     cand_loc = gen_loc(loc_bound,grid_size)
+    # I do not understand why do we need a scale parameter here instead of just using loc_bound directly.
+
+    #we need to sample a sequence of arrivals based on a homogeneous poisson process with rate lambd in interval [0,T].
+    num_arr = np.sort(np.random.poisson(lambd*T,1))
+    time_arr = np.random.uniform(0, T, num_arr)
+    
+
+
+
+
 
 
 
