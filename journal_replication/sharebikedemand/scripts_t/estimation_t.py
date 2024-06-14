@@ -15,13 +15,24 @@ Input:
     num_position: total number of arrival locations
     bike_num: total number of bikes
     grid_size: grid size of the candidate location
-    beta0, beta1: MNL model parameter
+    beta0, beta1_true: MNL model parameter
     loc_bound: bound of the bike locations and arrival locations
     split_data: whether split the data into train/test set
 
+    
+Variable Inbetween:
+    dist_i:
+    The index of the distance between the arrived rider and the bike. (not including the riders that have not booked a bike)
+
+    xi,yi:
+    The coordinates of the destination of the rider.
+
+    dist[:,dist_i,int(book_bike[num_booked])]:
+    This will return the distance bewttween the booked bike and all the arrival locations.
+
 Output:
     bike_num: total number of bikes
-    num_records: number of all arrived riders. 
+    num_records: dist.shape[1]
     book_bike: array of length num_booked. Contains a squence of booking bikes.
     book_index: The index of rider that booked the bike.
     dist: 
@@ -47,12 +58,15 @@ def gen_sync(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=
     np.random.seed(rand_seed)
 
     #generate the candidate locations
-    cand_loc = gen_loc(loc_bound,grid_size)
+    cand_loc = gen_loc(loc_bound,grid_size,s=1.25)
     # I do not understand why do we need a scale parameter here instead of just using loc_bound directly.
+    posx = np.random.uniform(-4*loc_bound/5,4*loc_bound/5,num_position)
+    posy = np.random.uniform(-4*loc_bound/5,4*loc_bound/5,num_position)
+    true_loc = np.stack((posx,posy),axis=1)
 
     #we need to sample a sequence of arrivals based on a homogeneous poisson process with rate lambd in interval [0,T].
-    num_arr = np.sort(np.random.poisson(lambd*T,1))
-    arr_time = np.random.uniform(0, T, num_arr)
+    num_records = np.random.poisson(lambd*T,1)[0]
+    arr_time = np.random.uniform(0, T, num_records)
     arr_time = np.sort(arr_time)
 
     #we will tot_time to store the total time of the simulation.(both begin time and finish time)
@@ -64,7 +78,7 @@ def gen_sync(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=
     location_weight = location_weight/np.sum(location_weight)
 
     #we need to know the index of riders arrival location.
-    ridgenpos = np.argmax(np.random.multinomial(1,location_weight,size=num_arr),axis=1)
+    ridgenpos = np.argmax(np.random.multinomial(1,location_weight,size=num_records),axis=1)
 
     #we now sample initial bike locations
     bike_loc = np.zeros((1,bike_num,2))
@@ -72,17 +86,58 @@ def gen_sync(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=
         bike_loc[0,i,0] = np.random.uniform(-loc_bound,loc_bound)
         bike_loc[0,i,1] = np.random.uniform(-loc_bound,loc_bound)
 
-    return cand_loc
+    #we need to compute the distance between the initial arrival location and the bike location.
+    # Initialize the distance list with initial distances
+    dist_list = []
+    initial_dist = np.zeros((num_position, bike_num))
+    for i in range(num_position):
+        for j in range(bike_num):
+            initial_dist[i, j] = np.linalg.norm(true_loc[i, :] - bike_loc[0, j, :])
+    dist_list.append(initial_dist)
+
+    #We now need to simulate the booking process.
+    book_bike = []
+    book_index = []
+    all_period = []
+    num_booked = 0
     
+    for t in range(num_records):
+        genpos = ridgenpos[t]
+        dist_cur = dist_list[-1].copy()
+        #print(genpos)
+        # Compute the probability of booking using the MNL model
+        prob_leave = findprob0(dist_cur, genpos, beta0, beta1_true)
 
+        if not np.random.binomial(1, prob_leave):
+            closest_bike = np.argmin(dist_cur[genpos, :])
+            book_bike.append(closest_bike)
+            book_index.append(t)
+            num_booked += 1
 
+        # Randomly sample destination uniformly within [-loc_bound, loc_bound]²
+            dest_x = np.random.uniform(-loc_bound, loc_bound)
+            dest_y = np.random.uniform(-loc_bound, loc_bound)
 
+        # Compute walking time and traveling time
+            walking_time = dist_cur[genpos, closest_bike] / 4
+            traveling_time = np.linalg.norm([dest_x, dest_y] - bike_loc[0, closest_bike, :]) / 18
 
+            # Compute the duration of the trip
+            duration = np.maximum(np.random.normal(walking_time + traveling_time, 0.1), 0.05)
+            all_period.append(duration)
 
+            # Update bike location after trip
+            bike_loc[0, closest_bike, :] = [dest_x, dest_y]
 
-
-
-
+            # Update distances for next arrivals
+            new_dist = np.zeros((num_position, bike_num))
+            for i in range(num_position):
+                for j in range(bike_num):
+                    new_dist[i, j] = np.linalg.norm(true_loc[i, :] - bike_loc[0, j, :])
+            
+            dist_list.append(new_dist)
+    dist = np.stack(dist_list, axis=1)
+    return(bike_num,num_records,np.array(book_bike),np.array(book_index),dist,bike_loc,np.array(all_period),num_booked,cand_loc,true_loc,location_weight)
 
 '''
     This function is used to generate the location of the bike and arrival locations.
@@ -109,4 +164,14 @@ def gen_loc(loc_bound,grid_size,s=1,coor=np.zeros(2)):
         loc[0,i,0] = a[int(i/grid_size)]
         loc[0,i,1] = b[int(i%grid_size)]
     return loc
+
+'''
+  Return the probability of leaving under the MNL model
+  Input:
+    dist_cur: the distance between the arrived rider and the bike.
+    genpos: the index of the rider's arrival location.
+    beta0, beta1_true: MNL model parameter
+'''
+def findprob0(dist_cur,genpos,beta0,beta1_true):
+  return 1/(1+np.sum(np.exp(beta0+beta1_true*dist_cur[genpos,:])))
 
