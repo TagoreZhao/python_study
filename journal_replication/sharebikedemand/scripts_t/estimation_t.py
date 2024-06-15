@@ -109,6 +109,7 @@ def gen_sync(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=
         prob_leave = findprob0(dist_cur, genpos, beta0, beta1_true)
 
         if not np.random.binomial(1, prob_leave):
+            choiceprob = np.exp(beta1_true*dist[genpos,t,:])/np.sum(np.exp(beta1_true*dist[genpos,t,:]))
             closest_bike = np.argmin(dist_cur[genpos, :])
             book_bike.append(closest_bike)
             book_index.append(t)
