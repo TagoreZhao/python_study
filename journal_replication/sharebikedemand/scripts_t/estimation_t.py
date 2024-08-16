@@ -1,3 +1,8 @@
+#This replication is based on the paper by Xu, Ang, Yan, Chiwei, Goh, Chong Yang, and Jaillet, Patrick, titled *"A Locational Demand Model for Bike-Sharing,"* published on May 18, 2023.
+
+#You can access the original paper [here on SSRN](https://ssrn.com/abstract=3311371) or via [this DOI link](http://dx.doi.org/10.2139/ssrn.3311371). You can access the original githhub [repo](https://github.com/angxu1/bike_sharing).
+
+
 # We will need to load all libraries here
 import numpy as np
 from tqdm import tqdm
@@ -5,13 +10,7 @@ import warnings
 import matplotlib.pyplot as plt
 from scipy.optimize import linprog
 
-#test code to see if this is actually executable
-#print("Hello World")
 
-# We start with section 5.1, we need define functions that will help us generate the synthetic data.
-
-#We first need figure out what parameters we are gonna need and output.
-#We need to specify the input and output
 def gen_sync(rand_seed,num_position,bike_num,lambd,grid_size,beta0=1,beta1_true=-1,T=50,loc_bound=5,split_data=False):  
     '''
     Input:
