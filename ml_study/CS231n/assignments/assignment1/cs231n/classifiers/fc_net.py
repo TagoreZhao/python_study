@@ -55,7 +55,11 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        W1 = np.random.normal(0, weight_scale, (input_dim, hidden_dim))
+        W2 = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+        b1 = np.zeros(hidden_dim)
+        b2 = np.zeros(num_classes)
+        self.params = {'W1': W1, 'W2': W2, 'b1': b1, 'b2': b2, input_dim: input_dim, hidden_dim: hidden_dim, num_classes: num_classes, weight_scale: weight_scale}
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
