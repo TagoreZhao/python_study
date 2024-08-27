@@ -43,6 +43,10 @@ class TwoLayerNet(object):
         """
         self.params = {}
         self.reg = reg
+        self.hidden_dim = hidden_dim
+        self.num_classes = num_classes
+        self.input_dim = input_dim
+        self.weight_scale = weight_scale
 
         ############################################################################
         # TODO: Initialize the weights and biases of the two-layer net. Weights    #
@@ -59,7 +63,7 @@ class TwoLayerNet(object):
         W2 = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
         b1 = np.zeros(hidden_dim)
         b2 = np.zeros(num_classes)
-        self.params = {'W1': W1, 'W2': W2, 'b1': b1, 'b2': b2, input_dim: input_dim, hidden_dim: hidden_dim, num_classes: num_classes, weight_scale: weight_scale}
+        self.params = {'W1': W1, 'W2': W2, 'b1': b1, 'b2': b2}
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -92,7 +96,12 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        num_train = X.shape[0]
+        X = X.reshape(num_train, -1)
+        W1, W2, b1, b2 = self.params['W1'], self.params['W2'], self.params['b1'], self.params['b2']
+        hidden_layer, hidden_cache = affine_relu_forward(X, W1, b1)
+        hidden_layer1, hidden_cache1 = affine_forward(hidden_layer, W2, b2)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -101,6 +110,7 @@ class TwoLayerNet(object):
 
         # If y is None then we are in test mode so just return scores
         if y is None:
+            scores = hidden_layer1
             return scores
 
         loss, grads = 0, {}
@@ -116,7 +126,14 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, descore = softmax_loss(hidden_layer1, y)
+        loss += 0.5 * self.reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
+        dx,dw2,db2 = affine_backward(descore, hidden_cache1)
+        dx1, dw1, db1 = affine_relu_backward(dx, hidden_cache)
+        grads['W1'] = dw1 + self.reg * W1
+        grads['W2'] = dw2 + self.reg * W2
+        grads['b1'] = db1
+        grads['b2'] = db2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
