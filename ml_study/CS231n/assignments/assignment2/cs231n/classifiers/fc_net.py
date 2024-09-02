@@ -74,7 +74,19 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        for i in range(1, self.num_layers):
+            if i == 1:
+                W = np.random.normal(0, weight_scale, (input_dim, hidden_dims[i-1]))
+            else:
+                W = np.random.normal(0, weight_scale, (hidden_dims[i-2], hidden_dims[i-1]))
+            b = np.zeros(hidden_dims[i-1])
+            self.params[f'W{i}'] = W
+            self.params[f'b{i}'] = b
+            if self.normalization:
+                gamma = np.ones(hidden_dims[i-1])
+                beta = np.zeros(hidden_dims[i-1])
+                self.params[f'gamma{i}'] = gamma
+                self.params[f'beta{i}'] = beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -148,7 +160,21 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        for i in range(1, self.num_layers):
+            W = self.params[f'W{i}']
+            b = self.params[f'b{i}']
+            if i == 1:
+                X, cache = affine_forward(X, W, b)
+            else:
+                X, cache = affine_forward(X, W, b)
+            X, cache = relu_forward(X)
+            if self.normalization:
+                gamma = self.params[f'gamma{i}']
+                beta = self.params[f'beta{i}']
+                X, cache = batchnorm_forward(X, gamma, beta, self.bn_params[i-1])
+            if self.use_dropout:
+                X, cache = dropout_forward(X, self.dropout_param)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -175,7 +201,13 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, descore = softmax_loss(X, y)
+        for i in range(1, self.num_layers):
+            loss += self.reg * np.sum(self.params[f'W{i}'] * self.params[f'W{i}'])
+
+        
+
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
